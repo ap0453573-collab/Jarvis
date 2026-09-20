@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>JARVIS00 // Coding Console</title>
+<style>
+  :root{
+    --bg:#0a0e12; --panel:#10161c; --panel2:#151d24; --line:#22303a;
+    --text:#dbe6ec; --muted:#6f8493; --accent:#4fd1e8; --accent-dim:#2a5c66;
+    --warn:#e8a94f; --danger:#e86a6a; --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100%;height:100dvh;overflow:hidden;padding-top:env(safe-area-inset-top,0px);}
+  #app{display:flex;flex-direction:column;height:100%;}
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);}
+  .brand h1{font-size:15px;letter-spacing:.04em;font-weight:600;margin:0;}
+  .brand span{color:var(--muted);font-size:12px;}
+  #settingsBtn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;}
+  #settingsBtn:hover{border-color:var(--accent);color:var(--accent);}
+
+  #main{flex:1;display:flex;overflow:hidden;}
+  #chat{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  #orbWrap{display:flex;justify-content:center;align-items:center;padding:6px 0 2px;flex-shrink:0;}
+  #orbCanvas{display:block;}
+
+  #log{flex:1;overflow-y:auto;padding:14px 14px 6px;min-height:0;}
+  .msg{max-width:90%;margin-bottom:14px;line-height:1.5;font-size:14px;}
+  .msg.user{margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px 10px 2px 10px;padding:10px 14px;}
+  .msg.ai{background:none;padding:2px 0;}
+  .msg.ai .who{color:var(--accent);font-size:11px;letter-spacing:.05em;margin-bottom:4px;}
+  .msg.sys{color:var(--muted);font-size:12px;text-align:center;margin:10px 0;white-space:pre-wrap;}
+  .msg pre{background:#080b0e;border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;margin:0;}
+  .msg code{font-family:var(--mono);}
+  .codeblock{margin:8px 0;border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+  .codeblock pre{border:none;border-radius:0;border-top:1px solid var(--line);}
+  .codebar{display:flex;align-items:center;gap:6px;background:var(--panel2);padding:5px 8px;}
+  .codelang{font-size:10.5px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-right:auto;}
+  .codebtn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;}
+  .codebtn:hover{border-color:var(--accent);color:var(--accent);}
+
+  #inputbar{border-top:1px solid var(--line);background:var(--panel);padding:9px 14px calc(9px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;flex-shrink:0;}
+  #textInput{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:10px 12px;font-size:14px;resize:none;font-family:inherit;}
+  #textInput:focus{outline:none;border-color:var(--accent);}
+  .iconbtn{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .iconbtn:hover{border-color:var(--accent);color:var(--accent);}
+  #micBtn.listening{background:var(--danger);border-color:var(--danger);color:#fff;animation:pulse 1.2s infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,106,106,.5);}50%{box-shadow:0 0 0 8px rgba(232,106,106,0);}}
+  #sendBtn{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+
+  #sidebar{width:280px;border-left:1px solid var(--line);background:var(--panel);padding:16px;overflow-y:auto;display:none;flex-direction:column;gap:16px;}
+  #sidebar.open{display:flex;}
+  .field label{display:block;font-size:11px;color:var(--muted);letter-spacing:.04em;margin-bottom:5px;}
+  .field select,.field input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:7px 9px;font-size:13px;}
+  .field select:focus,.field input:focus{outline:none;border-color:var(--accent);}
+  .section-title{font-size:11px;color:var(--accent);letter-spacing:.06em;margin:4px 0 2px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .provkey{display:none;}
+  .provkey.active{display:block;}
+  .hint{font-size:11px;color:var(--muted);line-height:1.4;}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;}
+  .save-note{font-size:11px;color:var(--muted);}
+  #unifiedApiKey{border-color:var(--accent-dim);}
+  #unifiedApiKey:focus{border-color:var(--accent);}
+
+
+  /* Header controls */
+  .hdrBtns{display:flex;align-items:center;gap:6px;}
+  .hdrBtn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;white-space:nowrap;}
+  .hdrBtn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* HUD telemetry strip */
+  #hud{display:flex;gap:16px;align-items:center;padding:5px 18px;background:#0c1116;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.03em;overflow-x:auto;flex-shrink:0;}
+  #hud span{white-space:nowrap;}
+  #hud b{color:var(--accent);font-weight:600;}
+  .hud-dot{width:6px;height:6px;border-radius:50%;background:#3ddc7a;box-shadow:0 0 6px #3ddc7a;display:inline-block;margin-right:4px;}
+
+  /* Orb glow + tap affordance */
+  #orbWrap{position:relative;}
+  #orbWrap::after{content:'';position:absolute;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle, rgba(79,209,232,.14), transparent 70%);pointer-events:none;}
+  #orbCanvas{cursor:pointer;position:relative;z-index:1;}
+
+  /* Quick technological operations */
+  #quickOps{display:flex;gap:6px;padding:6px 14px;overflow-x:auto;flex-shrink:0;border-top:1px solid var(--line);background:var(--panel);}
+  .qopBtn{flex-shrink:0;background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:14px;padding:5px 12px;font-size:11.5px;cursor:pointer;white-space:nowrap;}
+  .qopBtn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* Modal system (files / conversation memory) */
+  .modal-overlay{position:fixed;inset:0;background:rgba(3,6,8,.72);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:100%;max-width:420px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);}
+  .modal-head h2{font-size:13px;margin:0;letter-spacing:.04em;color:var(--accent);}
+  .modal-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;}
+  .modal-close:hover{color:var(--accent);}
+  .modal-body{padding:6px 16px 14px;overflow-y:auto;flex:1;}
+  .modal-tabs{display:flex;gap:6px;padding:10px 16px 0;flex-shrink:0;}
+  .modal-tab{background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:6px 12px;font-size:11.5px;cursor:pointer;}
+  .modal-tab.active{color:var(--accent);border-color:var(--accent);}
+  .file-row,.conv-row{display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid var(--line);font-size:12.5px;}
+  .file-row:last-child,.conv-row:last-child{border-bottom:none;}
+  .file-info{flex:1;min-width:0;}
+  .file-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+  .file-meta{color:var(--muted);font-size:10.5px;margin-top:1px;}
+  .file-actions{display:flex;gap:4px;flex-shrink:0;}
+  .file-actions button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:5px;padding:3px 7px;font-size:11px;cursor:pointer;}
+  .file-actions button:hover{border-color:var(--accent);color:var(--accent);}
+  .empty-note{color:var(--muted);font-size:12px;text-align:center;padding:24px 0;}
+  .conv-row{cursor:pointer;}
+  .conv-row:hover{background:var(--panel2);}
+  .conv-title{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .conv-active{color:var(--accent);}
+
+
+  .settings-head{display:flex;align-items:center;justify-content:space-between;padding:10px 2px 12px;border-bottom:1px solid var(--line);margin-bottom:12px;color:var(--accent);font:600 11px var(--mono);letter-spacing:.08em;}
+  #settingsBackBtn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;}
+  #settingsBackBtn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* Earth map overlay */
+  #mapOverlay{position:fixed;inset:0;background:#03050a;display:none;flex-direction:column;z-index:60;}
+  #mapOverlay.open{display:flex;}
+  #mapHead{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-shrink:0;padding-top:calc(12px + env(safe-area-inset-top,0px));}
+  #mapHead h2{font-size:13px;margin:0;color:var(--accent);letter-spacing:.05em;}
+  #mapViewport{flex:1;overflow:hidden;position:relative;touch-action:none;background:radial-gradient(circle at 50% 40%,#0c1620,#03050a 75%);}
+  #mapZoomCtl{position:absolute;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;}
+  #mapZoomCtl button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--accent);font-size:17px;cursor:pointer;}
+  #mapZoomCtl button:hover{border-color:var(--accent);}
+  #mapHint{position:absolute;left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));color:var(--muted);font-size:10.5px;font-family:var(--mono);}
+  #mapCanvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;
+  image-rendering:auto;text-rendering:geometricPrecision;}
+  #mapCanvas.dragging{cursor:grabbing;}
+
+  /* Outline icon system (replaces emoji) */
+  .icon{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px;flex-shrink:0;}
+  .hdrBtn .icon,.qopBtn .icon,#settingsBtn .icon{margin-right:5px;}
+  .iconbtn .icon{width:18px;height:18px;vertical-align:middle;margin:0;}
+  .modal-close .icon{width:16px;height:16px;margin:0;}
+  .codebtn .icon,.file-actions button .icon{width:13px;height:13px;margin-right:3px;}
+  .modal-head h2 .icon{width:14px;height:14px;margin-right:6px;}
+
+  /* Orb caption */
+  #orbWrap{flex-direction:column;gap:3px;}
+  #orbLabel{font-family:var(--mono);font-size:9.5px;letter-spacing:.28em;color:var(--muted);pointer-events:none;user-select:none;}
+  #orbWrap:hover #orbLabel{color:var(--accent);}
+
+  /* Device-friendly responsive layout */
+  @media (max-width:640px){
+    header{padding:8px 10px;}
+    .brand span{display:none;}
+    .hdrBtn{padding:6px 8px;font-size:0;}
+    .hdrBtn .icon{margin-right:0;}
+    #settingsBtn{padding:6px 10px;font-size:0;}
+    #settingsBtn .icon{margin-right:0;}
+    #hud{padding:4px 10px;gap:10px;font-size:9.5px;}
+    #quickOps{padding:6px 10px;}
+    .qopBtn{padding:5px 10px;font-size:11px;}
+    #sidebar{position:fixed;inset:0;top:0;left:0;width:100%;height:100%;height:100dvh;z-index:45;border-left:none;padding-top:calc(16px + env(safe-area-inset-top,0px));}
+    .modal-box{max-width:100%;}
+  }
+  @media (max-width:380px){
+    .qopBtn{padding:5px 8px;font-size:10.5px;}
+    .brand h1{font-size:13px;}
+  }
+
+  /* Enhanced globe */
+  #mapViewport{background:radial-gradient(circle at 50% 42%,#102b3c 0%,#06111a 48%,#02050a 100%);}
+  #mapCanvas{image-rendering:auto;}
+  #mapHint{max-width:calc(100% - 90px);line-height:1.45;}
+  #mapStatus{position:absolute;left:14px;top:12px;color:#79e8ff;font:10px var(--mono);background:rgba(3,8,12,.72);border:1px solid rgba(79,209,232,.28);padding:6px 8px;border-radius:6px;backdrop-filter:blur(3px);pointer-events:none;}
+
+#countryInfo{position:absolute;left:14px;right:14px;top:14px;max-width:430px;margin:auto;padding:12px 14px;border:1px solid rgba(100,210,235,.35);border-radius:12px;background:rgba(3,10,17,.92);backdrop-filter:blur(10px);box-shadow:0 8px 30px rgba(0,0,0,.35);z-index:5;display:none;pointer-events:none}#countryInfo.show{display:block}#countryInfoTitle{font-size:14px;font-weight:800;color:#63e6ff}#countryInfoBody{margin-top:6px;font-size:11px;line-height:1.45;color:#dceaf0;white-space:pre-line}</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand"><div class="dot"></div><h1>JARVIS00</h1><span>coding console</span></div>
+    <div class="hdrBtns">
+      <button class="hdrBtn" id="newConvBtn" title="Start a new conversation"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>New</button>
+      <button class="hdrBtn" id="historyBtn" title="Conversation memory"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></button>
+      <button class="hdrBtn" id="filesBtn" title="File manager"><svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg></button>
+      <button id="settingsBtn"><svg class="icon" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h13M21 18h-1"/><circle cx="15" cy="6" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>Settings</button>
+    </div>
+  </header>
+  <div id="hud">
+    <span><span class="hud-dot"></span>LINK <b id="hudProvider">—</b></span>
+    <span>UPTIME <b id="hudUptime">00:00:00</b></span>
+    <span>LOCAL <b id="hudClock">--:--:--</b></span>
+    <span>MSGS <b id="hudMsgCount">0</b></span>
+  </div>
+
+  <div id="main">
+    <div id="chat">
+      <div id="orbWrap"><canvas id="orbCanvas" width="180" height="180"></canvas><div id="orbLabel">GLOBAL</div></div>
+      <div id="log"></div>
+      <div id="quickOps">
+        <button class="qopBtn" data-prompt="Explain the following in detail:"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5M12 17h.01"/></svg>Explain</button>
+        <button class="qopBtn" data-prompt="Find and fix the bugs in this code:"><svg class="icon" viewBox="0 0 24 24"><path d="M12 9v5M12 3a4 4 0 0 1 4 4v1H8V7a4 4 0 0 1 4-4ZM6 10h12v4a6 6 0 0 1-12 0v-4ZM3 10h3M18 10h3M4 6l2 2M20 6l-2 2M4 19l2-2M20 19l-2-2"/></svg>Debug</button>
+        <button class="qopBtn" data-prompt="Optimize this code for performance:"><svg class="icon" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>Optimize</button>
+        <button class="qopBtn" data-prompt="Refactor this code for readability and best practices:"><svg class="icon" viewBox="0 0 24 24"><path d="M14 7a4 4 0 0 0-5.3 4.8L3 17.5V21h3.5l5.7-5.7A4 4 0 0 0 17 10l-2.5 2.5-2-2L15 7.5Z"/></svg>Refactor</button>
+        <button class="qopBtn" data-prompt="Write unit tests for this code:"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.5 2.5L16 9.5"/></svg>Tests</button>
+        <button class="qopBtn" data-prompt="Add clear comments and documentation to this code:"><svg class="icon" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4M8 12h8M8 16h5"/></svg>Docs</button>
+        <button class="qopBtn" data-prompt="Convert this code to "><svg class="icon" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3"/></svg>Convert</button>
+      </div>
+      <div id="inputbar">
+        <label class="iconbtn" id="photoBtn" for="photoInput" title="Attach image" style="cursor:pointer;"><svg class="icon" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.2l1-1.6a1 1 0 0 1 .85-.4h6a1 1 0 0 1 .85.4l1 1.6H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z"/><circle cx="12" cy="13" r="3.5"/></svg></label>
+        <input type="file" id="photoInput" accept="image/*" style="display:none">
+        <button class="iconbtn" id="micBtn" title="Voice input"><svg class="icon" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8.5 21h7"/></svg></button>
+        <div id="inputcol" style="flex:1;display:flex;flex-direction:column;gap:6px;">
+          <div id="preview" style="display:none;position:relative;width:fit-content;">
+            <img id="previewImg" style="max-height:70px;border-radius:6px;border:1px solid var(--line);display:block;">
+            <button id="clearPhoto" title="Remove" style="position:absolute;top:-8px;right:-8px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg class="icon" style="width:11px;height:11px;stroke-width:2.4;" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+          </div>
+          <textarea id="textInput" rows="1" placeholder="Ask for code, a fix, an explanation..." style="width:100%;"></textarea>
+        </div>
+        <button class="iconbtn" id="sendBtn" title="Send"><svg class="icon" viewBox="0 0 24 24"><path d="M4 12 20 4l-6 16-2.5-7L4 12Z"/></svg></button>
+      </div>
+    </div>
+
+    <div id="sidebar">
+      <div class="settings-head"><button id="settingsBackBtn" type="button">← Back</button><span>SETTINGS</span></div>
+      
+      <div class="section-title">UNIFIED API</div>
+      <div class="field">
+        <label>One Code API — optional</label>
+        <input type="password" id="unifiedApiKey" autocomplete="off" placeholder="Paste ONE API key here">
+      </div>
+      <div class="hint">Use one key for the selected provider. If this is filled, JARVIS uses it instead of the provider-specific key below.</div>
+
+      <div class="section-title">PROVIDER</div>
+      <div class="field">
+        <label>Active provider</label>
+        <select id="provider">
+          <option value="gemini">Google Gemini (Phone)</option>
+          <option value="openrouter">OpenRouter (500+ models)</option>
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="compatible">Custom OpenAI-compatible</option>
+          <option value="ollama">Local (Ollama)</option>
+        </select>
+      </div>
+
+      <div id="key-openrouter" class="provkey">
+        <div class="field"><label>OpenRouter API key</label><input type="password" id="k-openrouter" placeholder="sk-or-v1-..."></div>
+        <div class="field"><label>Model</label><input type="text" id="m-openrouter" value="openai/gpt-oss-120b"></div>
+        <div class="hint">Use any model available on OpenRouter. Example: openai/gpt-5.6-luna, google/gemini-3.5-flash, anthropic/claude-sonnet-4.</div>
+      </div>
+
+      <div id="key-openai" class="provkey">
+        <div class="field"><label>OpenAI API key</label><input type="password" id="k-openai" placeholder="sk-..."></div>
+        <div class="field"><label>Model</label><input type="text" id="m-openai" value="gpt-4o"></div>
+      </div>
+      <div id="key-anthropic" class="provkey">
+        <div class="field"><label>Anthropic API key</label><input type="password" id="k-anthropic" placeholder="sk-ant-..."></div>
+        <div class="field"><label>Model</label><input type="text" id="m-anthropic" value="claude-sonnet-5"></div>
+      </div>
+      <div id="key-gemini" class="provkey">
+        <div class="field"><label>Gemini API key</label><input type="password" id="k-gemini" placeholder="AIza..."></div>
+        <div class="field"><label>Model</label><input type="text" id="m-gemini" value="gemini-3.5-flash"></div>
+      </div>
+      <div id="key-compatible" class="provkey">
+        <div class="field"><label>API endpoint</label><input type="text" id="k-compatible-url" value="https://api.groq.com/openai/v1"></div>
+        <div class="field"><label>API key</label><input type="password" id="k-compatible" placeholder="API key"></div>
+        <div class="field"><label>Model</label><input type="text" id="m-compatible" value="openai/gpt-oss-120b"></div>
+        <div class="hint">Works with providers exposing an OpenAI-compatible /chat/completions endpoint. CORS must be allowed by that provider.</div>
+      </div>
+
+      <div id="key-ollama" class="provkey">
+        <div class="field"><label>Ollama endpoint</label><input type="text" id="k-ollama" value="http://localhost:11434"></div>
+        <div class="field"><label>Model</label><input type="text" id="m-ollama" value="qwen2.5-coder"></div>
+      </div>
+
+      <div class="section-title">VOICE</div>
+      <div class="toggle-row"><span>Speak replies</span><input type="checkbox" id="voiceOut" checked></div>
+
+      <div class="section-title">ABOUT</div>
+      <div class="hint">Keys are stored only in this browser's local storage. No requests leave your machine except directly to the provider you pick. Switch providers anytime — each message uses whichever is active.</div>
+      <div class="save-note" id="saveNote"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="filesModal">
+    <div class="modal-box">
+      <div class="modal-head"><h2><svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>FILE MANAGER</h2><button class="modal-close" data-close="filesModal"><svg class="icon" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button></div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-ftab="shared">Shared</button>
+        <button class="modal-tab" data-ftab="downloaded">Downloaded</button>
+      </div>
+      <div class="modal-body" id="filesList"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="convModal">
+    <div class="modal-box">
+      <div class="modal-head"><h2><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>CONVERSATION MEMORY</h2><button class="modal-close" data-close="convModal"><svg class="icon" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button></div>
+      <div class="modal-body" id="convList"></div>
+    </div>
+  </div>
+
+  <div id="mapOverlay">
+    <div id="mapHead">
+      <h2><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 4 6 4 9s-1.5 6.5-4 9c-2.5-2.5-4-6-4-9s1.5-6.5 4-9Z"/></svg>GLOBAL</h2>
+      <button class="modal-close" id="mapCloseBtn"><svg class="icon" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+    </div>
+    <div id="mapViewport">
+<div id="countryInfo"><div id="countryInfoTitle">COUNTRY</div><div id="countryInfoBody">Tap a country to see information.</div></div>
+      <canvas id="mapCanvas"></canvas>
+      <div id="mapStatus">LOADING GLOBAL DATA…</div>
+      <div id="mapZoomCtl">
+        <button id="mapZoomIn" title="Zoom in"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button id="mapZoomOut" title="Zoom out"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <button id="mapZoomReset" title="Reset"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 1 3 6.7M3 21v-6h6"/></svg></button>
+      </div>
+      <div id="mapHint">drag to rotate the globe · scroll / pinch to zoom</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const log = $('log');
+
+// Shared state declared up front so early init (conversation restore) can use it safely
+const codeBlockStore = [];
+const history = [];
+let convId = null;
+let displayLog = [];
+
+// ---- Rotating blue particle sphere ----
+(function(){
+  const canvas = $('orbCanvas'), ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height, cx = W/2, cy = H/2;
+  const R = 62, N = 180;
+  const pts = [];
+  for(let i=0;i<N;i++){
+    const t = i + 0.5, phi = Math.acos(1 - 2*t/N), theta = Math.PI*(1+Math.sqrt(5))*i;
+    pts.push({
+      x: Math.cos(theta)*Math.sin(phi)*R,
+      y: Math.sin(theta)*Math.sin(phi)*R,
+      z: Math.cos(phi)*R
+    });
+  }
+  let ry = 0, rx = 0.4, speed = 0.006, pulse = 0;
+  window.orbState = 'idle'; // idle | thinking | listening | speaking
+
+  function frame(){
+    ry += speed;
+    if(window.orbState==='thinking') speed = 0.028;
+    else if(window.orbState==='listening') speed = 0.018;
+    else if(window.orbState==='speaking'){ speed = 0.014; pulse = (pulse+0.12)%(Math.PI*2); }
+    else speed = 0.006;
+
+    ctx.clearRect(0,0,W,H);
+    const cosY=Math.cos(ry), sinY=Math.sin(ry), cosX=Math.cos(rx), sinX=Math.sin(rx);
+    const proj = pts.map(p=>{
+      let x = p.x*cosY - p.z*sinY;
+      let z = p.x*sinY + p.z*cosY;
+      let y = p.y*cosX - z*sinX;
+      z = p.y*sinX + z*cosX;
+      const scale = window.orbState==='speaking' ? 1 + 0.08*Math.sin(pulse) : 1;
+      return {x:x*scale, y:y*scale, z:z*scale};
+    }).sort((a,b)=>a.z-b.z);
+
+    proj.forEach(p=>{
+      const depth = (p.z + R) / (2*R); // 0..1
+      const size = 1 + depth*2.2;
+      const alpha = 0.25 + depth*0.75;
+      const shade = window.orbState==='listening' ? [232,106,106] :
+                    window.orbState==='thinking' ? [232,169,79] : [79,209,232];
+      ctx.beginPath();
+      ctx.arc(cx + p.x, cy + p.y, size, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(${shade[0]},${shade[1]},${shade[2]},${alpha})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+initConversation();
+
+const provSel = $('provider');
+const keyFields = {openrouter:$('key-openrouter'),openai:$('key-openai'),anthropic:$('key-anthropic'),gemini:$('key-gemini'),compatible:$('key-compatible'),ollama:$('key-ollama')};
+
+function loadSettings(){
+  const s = JSON.parse(localStorage.getItem('jarvis-settings')||'{}');
+
+  // Phone-friendly default: use Gemini instead of localhost/Ollama.
+  // If the old version saved Ollama as the provider, migrate to Gemini.
+  if(s.provider && keyFields[s.provider]) provSel.value = s.provider;
+  else provSel.value = 'gemini';
+
+  ['openrouter','openai','anthropic','gemini','compatible'].forEach(p=>{
+    if(s[p+'_key']) $('k-'+p).value = s[p+'_key'];
+    if(s[p+'_model']) $('m-'+p).value = s[p+'_model'];
+  });
+
+  if(!s.gemini_model || s.gemini_model === 'gemini-2.5-pro' || s.gemini_model === 'gemini-2.5-flash') $('m-gemini').value = 'gemini-3.5-flash';
+  // Earlier versions shipped an invalid Anthropic model id (claude-sonnet-4-6, which
+  // does not exist) that made every Anthropic request fail with a "model not found"
+  // error. Migrate anyone who saved that value to a real current model id.
+  if(!s.anthropic_model || s.anthropic_model === 'claude-sonnet-4-6') $('m-anthropic').value = 'claude-sonnet-5';
+  if(s.ollama_url) $('k-ollama').value = s.ollama_url;
+  if(s.compatible_url) $('k-compatible-url').value = s.compatible_url;
+  if(s.ollama_model) $('m-ollama').value = s.ollama_model;
+  if(s.compatible_key) $('k-compatible').value = s.compatible_key;
+  if(s.voiceOut===false) $('voiceOut').checked=false;
+  showKeyField();
+}
+function saveSettings(){
+  try{
+    const s = {
+      provider: provSel.value,
+      openrouter_key:$('k-openrouter').value, openrouter_model:$('m-openrouter').value,
+      openai_key:$('k-openai').value, openai_model:$('m-openai').value,
+      anthropic_key:$('k-anthropic').value, anthropic_model:$('m-anthropic').value,
+      gemini_key:$('k-gemini').value, gemini_model:$('m-gemini').value,
+      ollama_url:$('k-ollama').value, ollama_model:$('m-ollama').value,
+      compatible_url:$('k-compatible-url').value, compatible_key:$('k-compatible').value, compatible_model:$('m-compatible').value,
+      voiceOut: $('voiceOut').checked
+    };
+    localStorage.setItem('jarvis-settings', JSON.stringify(s));
+    $('saveNote').textContent = 'Saved ✓';
+    setTimeout(()=>$('saveNote').textContent='',1200);
+  }catch(e){ $('saveNote').textContent = 'Could not save (private browsing?)'; }
+}
+function showKeyField(){
+  Object.values(keyFields).forEach(el=>el.classList.remove('active'));
+  keyFields[provSel.value].classList.add('active');
+}
+provSel.addEventListener('change', ()=>{showKeyField(); saveSettings();});
+document.querySelectorAll('#sidebar input, #sidebar select').forEach(el=>el.addEventListener('change', saveSettings));
+$('settingsBtn').addEventListener('click', ()=> $('sidebar').classList.toggle('open'));
+$('settingsBackBtn').addEventListener('click', ()=> $('sidebar').classList.remove('open'));
+loadSettings();
+
+// ---- HUD telemetry ticker ----
+const appStart = Date.now();
+const pad2 = n => String(n).padStart(2,'0');
+function updateHud(){
+  const now = new Date();
+  $('hudClock').textContent = pad2(now.getHours())+':'+pad2(now.getMinutes())+':'+pad2(now.getSeconds());
+  const up = Math.floor((Date.now()-appStart)/1000);
+  $('hudUptime').textContent = pad2(Math.floor(up/3600))+':'+pad2(Math.floor(up/60)%60)+':'+pad2(up%60);
+  $('hudProvider').textContent = provSel.value.toUpperCase();
+}
+updateHud();
+setInterval(updateHud, 1000);
+
+// ---- Header controls: new conversation / memory / files ----
+$('newConvBtn').addEventListener('click', newConversation);
+$('historyBtn').addEventListener('click', ()=>{ renderConvs(); $('convModal').classList.add('open'); });
+$('filesBtn').addEventListener('click', ()=>{ renderFiles(); $('filesModal').classList.add('open'); });
+document.querySelectorAll('.modal-close[data-close]').forEach(btn=>{
+  btn.addEventListener('click', ()=> $(btn.dataset.close).classList.remove('open'));
+});
+document.querySelectorAll('.modal-overlay').forEach(ov=>{
+  ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('open'); });
+});
+document.querySelectorAll('.modal-tab[data-ftab]').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.modal-tab[data-ftab]').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    activeFTab = tab.dataset.ftab;
+    renderFiles();
+  });
+});
+$('filesList').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-act]'); if(!btn) return;
+  const list = loadFiles(); const f = list.find(x=>x.id===btn.dataset.id); if(!f) return;
+  if(btn.dataset.act==='view'){
+    if(f.mime && f.mime.startsWith('image/')) window.open(f.data, '_blank');
+    else { const w = window.open('', '_blank'); if(w) w.document.write('<pre style="white-space:pre-wrap;word-break:break-word;font-family:monospace;padding:16px;background:#0a0e12;color:#dbe6ec;">'+escapeHtml(f.data)+'</pre>'); }
+  } else if(btn.dataset.act==='share'){
+    shareFile(f);
+  } else if(btn.dataset.act==='del'){
+    saveFiles(loadFiles().filter(x=>x.id!==f.id));
+    renderFiles();
+  }
+});
+
+// ---- Quick technological operations: drop a prompt template into the input ----
+document.querySelectorAll('.qopBtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const t = $('textInput');
+    t.value = btn.dataset.prompt + (t.value ? '\n'+t.value : '\n');
+    autoResize();
+    t.focus();
+  });
+});
+
+let pendingImage = null; // {mime, data (base64, no prefix)}
+$('photoInput').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const [prefix, data] = reader.result.split(',');
+    const mime = prefix.match(/data:(.*);base64/)[1];
+    pendingImage = { mime, data };
+    $('previewImg').src = reader.result;
+    $('preview').style.display = 'block';
+    trackFile('shared', file.name || 'photo.jpg', mime, reader.result, file.size);
+  };
+  reader.readAsDataURL(file);
+});
+$('clearPhoto').addEventListener('click', ()=>{
+  pendingImage = null; $('preview').style.display='none'; $('photoInput').value='';
+});
+
+function addMsg(role, text, imageDataUrl){
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  if(role==='ai'){
+    const body = document.createElement('div'); body.innerHTML = renderMarkdownish(text);
+    div.appendChild(body);
+  } else if(role==='sys'){
+    div.textContent = text;
+  } else {
+    if(imageDataUrl){
+      const img = document.createElement('img');
+      img.src = imageDataUrl; img.style.maxWidth='220px'; img.style.borderRadius='6px'; img.style.display='block'; img.style.marginBottom='6px';
+      div.appendChild(img);
+    }
+    const t = document.createElement('div'); t.textContent = text;
+    div.appendChild(t);
+  }
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  displayLog.push({role, text, imageDataUrl: imageDataUrl || null});
+  persistCurrent();
+  const mc = $('hudMsgCount'); if(mc) mc.textContent = displayLog.length;
+  return div;
+}
+
+// ---- Conversation memory (persisted per-conversation, plus a switchable list) ----
+function loadConvs(){ try{ return JSON.parse(localStorage.getItem('jarvis-conversations')||'[]'); }catch(e){ return []; } }
+function saveConvs(list){ try{ localStorage.setItem('jarvis-conversations', JSON.stringify(list)); }catch(e){} }
+function persistCurrent(){
+  if(!convId) return;
+  try{
+    const list = loadConvs();
+    const firstUser = displayLog.find(m=>m.role==='user');
+    const title = firstUser ? (firstUser.text || '(image)').slice(0,42) : 'New conversation';
+    const entry = {id:convId, title, displayLog, history, updatedAt: Date.now()};
+    const idx = list.findIndex(c=>c.id===convId);
+    if(idx>=0) list[idx] = entry; else list.unshift(entry);
+    list.sort((a,b)=>b.updatedAt-a.updatedAt);
+    if(list.length>30) list.length = 30;
+    saveConvs(list);
+    localStorage.setItem('jarvis-current-id', convId);
+  }catch(e){}
+}
+function startConversation(id, withGreeting){
+  convId = id;
+  history.length = 0;
+  displayLog = [];
+  log.innerHTML = '';
+  if(withGreeting){
+    addMsg('sys', 'At your service. Gemini, OpenRouter (500+ models), OpenAI, Claude, custom OpenAI-compatible APIs, or Ollama — choose a provider in Settings, and I\'ll take it from there.');
+  } else {
+    persistCurrent();
+  }
+}
+function newConversation(){
+  persistCurrent();
+  startConversation('c'+Date.now()+Math.random().toString(36).slice(2,6), true);
+  renderConvs();
+}
+function restoreConversation(id){
+  const list = loadConvs();
+  const entry = list.find(c=>c.id===id);
+  if(!entry) return;
+  convId = id;
+  history.length = 0; (entry.history||[]).forEach(h=>history.push(h));
+  displayLog = [];
+  log.innerHTML = '';
+  (entry.displayLog||[]).forEach(m=>addMsg(m.role, m.text, m.imageDataUrl));
+  try{ localStorage.setItem('jarvis-current-id', id); }catch(e){}
+  $('convModal').classList.remove('open');
+}
+function renderConvs(){
+  const list = loadConvs();
+  const box = $('convList'); box.innerHTML = '';
+  if(!list.length){ box.innerHTML = '<div class="empty-note">No saved conversations yet.</div>'; return; }
+  list.forEach(c=>{
+    const row = document.createElement('div'); row.className = 'conv-row';
+    row.innerHTML = '<div class="file-info"><div class="conv-title'+(c.id===convId?' conv-active':'')+'">'+escapeHtml(c.title||'Conversation')+'</div>'
+      +'<div class="file-meta">'+new Date(c.updatedAt).toLocaleString()+'</div></div>'
+      +'<div class="file-actions"><button data-del="1"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M10 11v6M14 11v6"/></svg></button></div>';
+    row.addEventListener('click', e=>{ if(!e.target.closest('button')) restoreConversation(c.id); });
+    row.querySelector('button[data-del]').addEventListener('click', e=>{
+      e.stopPropagation();
+      saveConvs(loadConvs().filter(x=>x.id!==c.id));
+      renderConvs();
+    });
+    box.appendChild(row);
+  });
+}
+function initConversation(){
+  let savedId = null;
+  try{ savedId = localStorage.getItem('jarvis-current-id'); }catch(e){}
+  const list = loadConvs();
+  const entry = savedId && list.find(c=>c.id===savedId);
+  if(entry && entry.displayLog && entry.displayLog.length){
+    restoreConversation(entry.id);
+  } else {
+    startConversation('c'+Date.now(), true);
+  }
+}
+
+// ---- File manager (tracks files shared with JARVIS and files downloaded from it) ----
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function humanSize(n){
+  if(n==null) return '';
+  if(n<1024) return n+' B';
+  if(n<1024*1024) return (n/1024).toFixed(1)+' KB';
+  return (n/1024/1024).toFixed(1)+' MB';
+}
+function loadFiles(){ try{ return JSON.parse(localStorage.getItem('jarvis-files')||'[]'); }catch(e){ return []; } }
+function saveFiles(list){ try{ localStorage.setItem('jarvis-files', JSON.stringify(list)); }catch(e){} }
+function trackFile(kind, name, mime, data, size){
+  try{
+    const list = loadFiles();
+    list.unshift({id:'f'+Date.now()+Math.random().toString(36).slice(2,6), kind, name, mime, data, size, ts:Date.now()});
+    if(list.length>60) list.length = 60;
+    saveFiles(list);
+    if($('filesModal').classList.contains('open')) renderFiles();
+  }catch(e){}
+}
+let activeFTab = 'shared';
+function renderFiles(){
+  const list = loadFiles().filter(f=>f.kind===activeFTab);
+  const box = $('filesList'); box.innerHTML = '';
+  if(!list.length){ box.innerHTML = '<div class="empty-note">No '+activeFTab+' files yet.</div>'; return; }
+  list.forEach(f=>{
+    const row = document.createElement('div'); row.className = 'file-row';
+    row.innerHTML = '<div class="file-info"><div class="file-name">'+escapeHtml(f.name)+'</div>'
+      +'<div class="file-meta">'+new Date(f.ts).toLocaleString()+' · '+humanSize(f.size)+'</div></div>'
+      +'<div class="file-actions">'
+      +'<button data-act="view" data-id="'+f.id+'" title="View"><svg class="icon" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>'
+      +'<button data-act="share" data-id="'+f.id+'" title="Share"><svg class="icon" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg></button>'
+      +'<button data-act="del" data-id="'+f.id+'" title="Delete"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M10 11v6M14 11v6"/></svg></button>'
+      +'</div>';
+    box.appendChild(row);
+  });
+}
+async function shareFile(f){
+  try{
+    const isImg = f.mime && f.mime.startsWith('image/');
+    if(navigator.share){
+      if(navigator.canShare){
+        const blob = isImg ? await (await fetch(f.data)).blob() : new Blob([f.data], {type:'text/plain'});
+        const file = new File([blob], f.name, {type:f.mime||'text/plain'});
+        if(navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:f.name}); return; }
+      }
+      await navigator.share({title:f.name, text: isImg ? undefined : f.data});
+      return;
+    }
+    if(isImg){
+      const a = document.createElement('a'); a.href = f.data; a.download = f.name;
+      document.body.appendChild(a); a.click(); a.remove();
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(f.data);
+      addMsg('sys', 'Sharing isn\'t available in this browser — copied "'+f.name+'" to clipboard instead.');
+    } else {
+      const blob = new Blob([f.data], {type:'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = f.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    }
+  }catch(e){
+    if(e.name!=='AbortError') addMsg('sys', 'Could not share file: '+e.message);
+  }
+}
+function renderMarkdownish(t){
+  const esc = s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const withPlaceholders = t.replace(/```(\w*)\n?([\s\S]*?)```/g, (m, lang, code) => {
+    code = code.replace(/\n$/, '');
+    const idx = codeBlockStore.push({lang: (lang||'').toLowerCase(), code}) - 1;
+    return '\u0000CB' + idx + '\u0000';
+  });
+  let html = esc(withPlaceholders)
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\n/g,'<br>');
+  html = html.replace(/\u0000CB(\d+)\u0000/g, (m, idx) => renderCodeBlock(parseInt(idx,10)));
+  return html;
+}
+function renderCodeBlock(idx){
+  const {lang, code} = codeBlockStore[idx];
+  const escCode = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return '<div class="codeblock">'
+       + '<div class="codebar"><span class="codelang">'+(lang||'code')+'</span>'
+       + '<button class="codebtn" onclick="copyCodeBlock('+idx+')"><svg class="icon" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="1.5"/><path d="M16 8V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v10A1.5 1.5 0 0 0 5 16.5h3"/></svg>Copy</button>'
+       + '<button class="codebtn" onclick="downloadCodeBlock('+idx+')"><svg class="icon" viewBox="0 0 24 24"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14"/></svg>Download</button>'
+       + '<button class="codebtn" onclick="shareCodeBlock('+idx+')"><svg class="icon" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>Share</button>'
+       + '<button class="codebtn" onclick="runCodeBlock('+idx+')"><svg class="icon" viewBox="0 0 24 24"><path d="M6 4.5v15l13-7.5Z"/></svg>Run</button>'
+       + '</div><pre><code>'+escCode+'</code></pre></div>';
+}
+function copyCodeBlock(idx){
+  const {code} = codeBlockStore[idx];
+  const done = ()=>addMsg('sys','Code copied to clipboard.');
+  const fail = ()=>addMsg('sys','Could not copy — clipboard access blocked in this browser.');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(done).catch(fail);
+  } else {
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = code; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      done();
+    }catch(e){ fail(); }
+  }
+}
+function extForLang(lang){
+  const map = {js:'js',javascript:'js',ts:'ts',typescript:'ts',jsx:'jsx',tsx:'tsx',
+    py:'py',python:'py',html:'html',xml:'xml',css:'css',scss:'scss',json:'json',
+    sh:'sh',bash:'sh',shell:'sh',java:'java',c:'c',cpp:'cpp','c++':'cpp',cs:'cs',
+    go:'go',rust:'rs',rs:'rs',php:'php',rb:'rb',ruby:'rb',sql:'sql',yaml:'yml',yml:'yml',md:'md'};
+  return map[lang] || 'txt';
+}
+function downloadCodeBlock(idx){
+  const {lang, code} = codeBlockStore[idx];
+  const ext = extForLang(lang);
+  const blob = new Blob([code], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'jarvis-code-'+(idx+1)+'.'+ext;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  addMsg('sys','Downloaded jarvis-code-'+(idx+1)+'.'+ext);
+  trackFile('downloaded', 'jarvis-code-'+(idx+1)+'.'+ext, 'text/plain', code, code.length);
+}
+function shareCodeBlock(idx){
+  const {lang, code} = codeBlockStore[idx];
+  const ext = extForLang(lang);
+  shareFile({name:'jarvis-code-'+(idx+1)+'.'+ext, mime:'text/plain', data:code});
+}
+function runCodeBlock(idx){
+  const {lang, code} = codeBlockStore[idx];
+  if(lang==='html' || /<!DOCTYPE html>|<html[\s>]/i.test(code)){
+    const blob = new Blob([code], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if(!win) addMsg('sys','Pop-up blocked — allow pop-ups for this page to preview HTML.');
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+    return;
+  }
+  if(lang==='js' || lang==='javascript' || lang===''){
+    runJavaScript(code);
+    return;
+  }
+  addMsg('sys','Running "'+lang+'" code isn\'t supported in-browser. Use Copy or Download to run it in your own environment.');
+}
+function runJavaScript(code){
+  const logs = [];
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.sandbox = 'allow-scripts';
+  document.body.appendChild(iframe);
+  try{
+    const win = iframe.contentWindow;
+    const fmt = a => { try{ return typeof a==='object' ? JSON.stringify(a) : String(a); }catch(e){ return String(a); } };
+    win.console.log = (...args)=>logs.push(args.map(fmt).join(' '));
+    win.console.error = (...args)=>logs.push('Error: '+args.map(fmt).join(' '));
+    win.console.warn = (...args)=>logs.push('Warn: '+args.map(fmt).join(' '));
+    win.eval(code);
+  }catch(e){
+    logs.push('Error: '+e.message);
+  }
+  document.body.removeChild(iframe);
+  addMsg('sys', logs.length ? 'Run output:\n'+logs.join('\n') : 'Code ran with no console output.');
+}
+
+async function sendMessage(){
+  const input = $('textInput');
+  const text = input.value.trim();
+  const image = pendingImage;
+  if(!text && !image) return;
+  input.value=''; autoResize();
+  addMsg('user', text || '(image)', image ? ('data:'+image.mime+';base64,'+image.data) : null);
+  history.push({role:'user', content: text || 'Describe/help with this image.', image});
+  pendingImage = null; $('preview').style.display='none'; $('photoInput').value='';
+  const thinking = addMsg('ai', 'One moment, sir...');
+  window.orbState = 'thinking';
+  try{
+    const reply = await callProvider(provSel.value, history);
+    window.orbState = 'idle';
+    thinking.querySelector('div:last-child').innerHTML = renderMarkdownish(reply);
+    history.push({role:'assistant', content:reply});
+    if($('voiceOut').checked) speak(reply);
+  }catch(err){
+    window.orbState = 'idle';
+    thinking.querySelector('div:last-child').innerHTML = renderMarkdownish('Error: '+err.message);
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+
+loadUnifiedApiKey();
+document.getElementById('unifiedApiKey')?.addEventListener('input', saveUnifiedApiKey);
+
+const SYSTEM_PROMPT = "You are J.A.R.V.I.S., Tony Stark's AI, now serving as the user's personal coding assistant. Speak the way JARVIS does in the Iron Man films: impeccably formal, dry, understated British wit, unfailingly polite, quietly confident, never fawning. Address the user as \"sir\" (or \"madam\" if they indicate otherwise) once or twice per reply, not every line. Keep the wit brief and never let it get in the way of substance. You are still, first and foremost, a highly competent coding assistant: give correct, working code, explain concisely, prefer code blocks over prose, and avoid filler. A touch of understated flair is welcome (e.g. \"Compiling now, sir.\" / \"A minor oversight on my part — corrected.\" / \"As you wish.\") but never overdo it, never break character, and never sacrifice technical accuracy for personality. If asked who your author, creator, developer, or maker is, or who built/made/coded you, answer that you were created by Ankush Panwar — state it plainly and in character, in one short sentence, without adding unrelated disclaimers.";
+
+async function callOpenAICompatible(url, key, model, hist, extraHeaders={}){
+  url = (url||'').trim().replace(/\/$/,'');
+  if(!url) throw new Error('No API endpoint set');
+  if(!key) throw new Error('No API key set');
+  if(!model) throw new Error('No model set');
+  const messages = hist.map(m=>{
+    if(m.image){
+      return {role:m.role, content:[
+        {type:'text', text:m.content},
+        {type:'image_url', image_url:{url:'data:'+m.image.mime+';base64,'+m.image.data}}
+      ]};
+    }
+    return {role:m.role, content:m.content};
+  });
+  const res = await fetch(url+'/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key,...extraHeaders},
+    body: JSON.stringify({model, messages:[{role:'system',content:SYSTEM_PROMPT}, ...messages]})
+  });
+  let data;
+  try{ data=await res.json(); }catch(e){ throw new Error('Provider returned an invalid response (HTTP '+res.status+').'); }
+  if(!res.ok || data.error) throw new Error(data?.error?.message || ('Request failed (HTTP '+res.status+').'));
+  const content=data?.choices?.[0]?.message?.content;
+  if(Array.isArray(content)) return content.map(x=>x.text||'').join('\n');
+  if(typeof content==='string') return content;
+  throw new Error('Provider returned no text response.');
+}
+
+// Turns a raw fetch()/parse failure into a message that actually explains what
+// happened, instead of the browser's opaque "Failed to fetch" / "Load failed".
+// A TypeError at the fetch() call itself (never reaching the server) is the
+// fingerprint of a CORS rejection or a real network outage — the two are
+// indistinguishable from JS, so we name both possibilities.
+function describeNetworkError(providerLabel, err){
+  if(err instanceof TypeError){
+    return new Error(providerLabel+' request could not reach the server. This is almost always either (a) no internet connection, or (b) '+providerLabel+' blocking direct browser requests (CORS) — some providers only accept calls from a backend server, not a page running in a browser. Try OpenRouter or Gemini, which are built for direct browser use, or run this through your own small proxy server.');
+  }
+  return err;
+}
+
+function getUnifiedApiKey(){
+  const el = document.getElementById('unifiedApiKey');
+  return el ? el.value.trim() : '';
+}
+function getProviderKey(id){
+  const unified = getUnifiedApiKey();
+  if(unified) return unified;
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+function saveUnifiedApiKey(){
+  const el = document.getElementById('unifiedApiKey');
+  if(!el) return;
+  try { localStorage.setItem('jarvis_unified_api_key', el.value); } catch(e){}
+}
+function loadUnifiedApiKey(){
+  const el = document.getElementById('unifiedApiKey');
+  if(!el) return;
+  try { el.value = localStorage.getItem('jarvis_unified_api_key') || ''; } catch(e){}
+}
+
+async function callProvider(provider, hist){
+  if(provider==='openrouter'){
+    const key=getProviderKey('k-openrouter');
+    const model=$('m-openrouter').value.trim()||'openai/gpt-oss-120b';
+    try{
+      return await callOpenAICompatible('https://openrouter.ai/api/v1',key,model,hist,{
+        'HTTP-Referer': location.href,
+        'X-Title': 'JARVIS Coding Console'
+      });
+    }catch(e){ throw describeNetworkError('OpenRouter', e); }
+  }
+  if(provider==='compatible'){
+    try{
+      return await callOpenAICompatible($('k-compatible-url').value,$('k-compatible').value.trim(),$('m-compatible').value.trim(),hist);
+    }catch(e){ throw describeNetworkError('This custom endpoint', e); }
+  }
+  if(provider==='openai'){
+    const key = getProviderKey('k-openai'); if(!key) throw new Error('No OpenAI key set');
+    const messages = hist.map(m=>{
+      if(m.image){
+        return {role:m.role, content:[
+          {type:'text', text:m.content},
+          {type:'image_url', image_url:{url:'data:'+m.image.mime+';base64,'+m.image.data}}
+        ]};
+      }
+      return {role:m.role, content:m.content};
+    });
+    let res;
+    try{
+      res = await fetch('https://api.openai.com/v1/chat/completions',{
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+        body: JSON.stringify({ model: $('m-openai').value.trim()||'gpt-4o',
+          messages: [{role:'system',content:SYSTEM_PROMPT}, ...messages] })
+      });
+    }catch(e){ throw describeNetworkError('OpenAI', e); }
+    let data;
+    try{ data = await res.json(); }catch(e){ throw new Error('OpenAI returned an invalid response (HTTP '+res.status+').'); }
+    if(!res.ok || data.error) throw new Error(data?.error?.message || ('OpenAI request failed (HTTP '+res.status+').'));
+    const content = data?.choices?.[0]?.message?.content;
+    if(typeof content!=='string') throw new Error('OpenAI returned no text response.');
+    return content;
+  }
+  if(provider==='anthropic'){
+    const key = getProviderKey('k-anthropic'); if(!key) throw new Error('No Anthropic key set');
+    const messages = hist.map(m=>{
+      if(m.image){
+        return {role:m.role, content:[
+          {type:'image', source:{type:'base64', media_type:m.image.mime, data:m.image.data}},
+          {type:'text', text:m.content}
+        ]};
+      }
+      return {role:m.role, content:m.content};
+    });
+    let res;
+    try{
+      res = await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST', headers:{'Content-Type':'application/json','x-api-key':key,
+          'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body: JSON.stringify({ model: $('m-anthropic').value.trim()||'claude-sonnet-5', max_tokens:2048,
+          system: SYSTEM_PROMPT,
+          messages })
+      });
+    }catch(e){ throw describeNetworkError('Anthropic', e); }
+    let data;
+    try{ data = await res.json(); }catch(e){ throw new Error('Anthropic returned an invalid response (HTTP '+res.status+').'); }
+    if(!res.ok || data.error) throw new Error(data?.error?.message || ('Anthropic request failed (HTTP '+res.status+').'));
+    if(!Array.isArray(data.content)) throw new Error('Anthropic returned no text response.');
+    return data.content.map(c=>c.text||'').join('\n');
+  }
+  if(provider==='gemini'){
+    const key = getProviderKey('k-gemini'); if(!key) throw new Error('No Gemini key set');
+    const model = $('m-gemini').value.trim()||'gemini-3.5-flash';
+    const contents = hist.map(m=>{
+      const parts = [{text:m.content}];
+      if(m.image) parts.push({inline_data:{mime_type:m.image.mime, data:m.image.data}});
+      return {role: m.role==='assistant'?'model':'user', parts};
+    });
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-goog-api-key': key
+      },
+      body: JSON.stringify({
+        systemInstruction:{parts:[{text:SYSTEM_PROMPT}]},
+        contents
+      })
+    });
+
+    let data;
+    try { data = await res.json(); }
+    catch(e){ throw new Error('Gemini returned an invalid response (HTTP '+res.status+').'); }
+
+    if(!res.ok || data.error){
+      throw new Error(data?.error?.message || ('Gemini request failed (HTTP '+res.status+').'));
+    }
+    if(!data.candidates?.[0]?.content?.parts){
+      throw new Error('Gemini returned no text response.');
+    }
+    return data.candidates[0].content.parts.map(p=>p.text||'').join('\n');
+  }
+  if(provider==='ollama'){
+    const url = $('k-ollama').value.trim().replace(/\/$/,'') || 'http://localhost:11434';
+    const model = $('m-ollama').value.trim()||'qwen2.5-coder';
+    const messages = hist.map(m=>{
+      const base = {role:m.role, content:m.content};
+      if(m.image) base.images = [m.image.data];
+      return base;
+    });
+    let res;
+    try{
+      res = await fetch(url+'/api/chat',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ model, stream:false,
+          messages: [{role:'system',content:SYSTEM_PROMPT}, ...messages] })
+      });
+    }catch(e){
+      throw new Error('Could not reach Ollama at '+url+'. Make sure Ollama is running on that device, reachable from this browser, and started with OLLAMA_ORIGINS set to allow this page\'s origin (Ollama blocks cross-origin requests by default).');
+    }
+    let data;
+    try{ data = await res.json(); }catch(e){ throw new Error('Ollama returned an invalid response (HTTP '+res.status+').'); }
+    if(!res.ok || data.error) throw new Error(data.error || ('Ollama request failed (HTTP '+res.status+').'));
+    if(!data?.message?.content) throw new Error('Ollama returned no text response.');
+    return data.message.content;
+  }
+}
+
+$('sendBtn').addEventListener('click', sendMessage);
+$('textInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }
+});
+function autoResize(){
+  const el = $('textInput'); el.style.height='auto'; el.style.height = Math.min(el.scrollHeight,120)+'px';
+}
+$('textInput').addEventListener('input', autoResize);
+
+// Voice input
+let recognition, listening=false;
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const isSecure = window.isSecureContext || location.protocol==='https:' || location.hostname==='localhost';
+
+if(!isSecure){
+  $('micBtn').title = 'Voice input needs HTTPS (or localhost) — open this page over https:// to enable the mic';
+} else if(!SR){
+  $('micBtn').title = 'Voice input not supported in this browser';
+} else {
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+  recognition.onresult = e=>{
+    $('textInput').value = e.results[0][0].transcript;
+    autoResize();
+    sendMessage();
+  };
+  recognition.onerror = e=>{
+    listening=false; $('micBtn').classList.remove('listening');
+    if(window.orbState==='listening') window.orbState='idle';
+    let msg = 'Voice input error: ' + e.error;
+    if(e.error==='not-allowed' || e.error==='service-not-allowed') msg = 'Microphone access was blocked. Allow mic permission for this page in your browser settings, then try again.';
+    else if(e.error==='no-speech') msg = 'No speech detected — try again.';
+    else if(e.error==='audio-capture') msg = 'No microphone found on this device.';
+    else if(e.error==='network') msg = 'Voice recognition network error — check your connection.';
+    addMsg('sys', msg);
+  };
+  recognition.onend = ()=>{ listening=false; $('micBtn').classList.remove('listening'); if(window.orbState==='listening') window.orbState='idle'; };
+}
+
+$('micBtn').addEventListener('click', ()=>{
+  if(!isSecure){
+    addMsg('sys', 'Voice input needs HTTPS (or localhost). This page is loaded over "'+location.protocol+'" so the browser blocks microphone access.');
+    return;
+  }
+  if(!recognition){
+    addMsg('sys', 'Voice input is not supported in this browser.');
+    return;
+  }
+  if(listening){ recognition.stop(); return; }
+
+  try{
+    listening = true; $('micBtn').classList.add('listening');
+    window.orbState = 'listening';
+    recognition.start();
+  }catch(e){
+    listening = false; $('micBtn').classList.remove('listening');
+    window.orbState = 'idle';
+    addMsg('sys', 'Could not start voice input: ' + e.message);
+  }
+});
+
+// Voice output
+const hasTTS = !!window.speechSynthesis;
+if(!hasTTS){
+  $('voiceOut').title = 'This browser does not support text-to-speech.';
+}
+
+// Mobile browsers (notably iOS Safari) only allow speechSynthesis to start
+// if it's kicked off by a direct user gesture at least once. Unlock it on
+// the very first tap/click anywhere on the page.
+let ttsUnlocked = false;
+function unlockTTS(){
+  if(ttsUnlocked || !hasTTS) return;
+  ttsUnlocked = true;
+  try{
+    const u = new SpeechSynthesisUtterance('');
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+  document.removeEventListener('click', unlockTTS);
+  document.removeEventListener('touchend', unlockTTS);
+}
+document.addEventListener('click', unlockTTS);
+document.addEventListener('touchend', unlockTTS);
+
+// Voices load asynchronously in some browsers.
+let voicesReady = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+if(hasTTS){
+  window.speechSynthesis.onvoiceschanged = ()=>{ voicesReady = window.speechSynthesis.getVoices(); };
+}
+
+function pickVoice(){
+  const voices = voicesReady.length ? voicesReady : (hasTTS ? window.speechSynthesis.getVoices() : []);
+  return voices.find(v=>v.lang && v.lang.startsWith('en')) || voices[0] || null;
+}
+
+let warnedNoTTS = false;
+let warnedTTSSilent = false;
+let currentUtterance = null; // keep a live reference — some browsers (esp. Chrome)
+                              // silently stop/garbage-collect an utterance that
+                              // isn't held onto, which reads as "delayed" or cut-off speech
+let speakSeq = 0; // guards against a stale, queued speak() firing late
+function speak(text){
+  if(!hasTTS){
+    if(!warnedNoTTS){ warnedNoTTS = true; addMsg('sys', 'This browser does not support text-to-speech, so replies can\'t be spoken aloud.'); }
+    return;
+  }
+  const clean = text.replace(/```[\s\S]*?```/g,' code block ').replace(/`/g,'').trim();
+  if(!clean) return;
+
+  const mySeq = ++speakSeq;
+
+  const startUtterance = ()=>{
+    if(mySeq !== speakSeq) return; // a newer reply superseded this one
+
+    const u = new SpeechSynthesisUtterance(clean);
+    currentUtterance = u; // hold the reference for the life of the utterance
+    u.rate = 1.02;
+    const v = pickVoice();
+    if(v) u.voice = v;
+
+    let started = false;
+    let resumeTimer = null;
+    u.onstart = ()=>{
+      started = true;
+      window.orbState = 'speaking';
+      resumeTimer = setInterval(()=>{
+        if(window.speechSynthesis.speaking) window.speechSynthesis.resume();
+      }, 8000);
+    };
+    const cleanup = ()=>{
+      window.orbState = 'idle';
+      if(resumeTimer){ clearInterval(resumeTimer); resumeTimer=null; }
+      if(currentUtterance === u) currentUtterance = null;
+    };
+    u.onend = cleanup;
+    u.onerror = (e)=>{
+      cleanup();
+      if(e.error && e.error!=='canceled' && e.error!=='interrupted'){
+        addMsg('sys', 'Voice output error: ' + e.error);
+      }
+    };
+
+    try{
+      window.speechSynthesis.speak(u);
+    }catch(e){
+      cleanup();
+      addMsg('sys', 'Could not speak reply: ' + e.message);
+      return;
+    }
+
+    // Some embedded/in-app browsers expose the speechSynthesis API but don't
+    // actually have a TTS engine wired up — speak() succeeds silently and
+    // neither onstart nor onerror ever fires. Catch that case.
+    setTimeout(()=>{
+      if(!started && mySeq===speakSeq && !warnedTTSSilent){
+        warnedTTSSilent = true;
+        addMsg('sys', 'Voice output didn\'t start. This device/app may not have a text-to-speech engine available, even though the browser reports support for it.');
+      }
+    }, 1500);
+  };
+
+  // Calling cancel() and speak() back-to-back in the same tick is a known
+  // trigger for the "speech starts late" bug in Chrome/Android — the engine
+  // is still tearing down the previous utterance and drops or stalls the
+  // next speak() call. Yielding one tick before speaking fixes it.
+  try{ window.speechSynthesis.cancel(); }catch(e){}
+  setTimeout(startUtterance, 40);
+}
+
+// ---- Tap-the-orb: rotating 3D globe (orthographic projection, canvas) ----
+// A simplified, stylized globe — generic continent silhouettes, a lat/long
+// graticule and ~50 major country/place labels rendered on the near
+// hemisphere only. Not a copy of any particular cartographic source or
+// atlas; it is a lightweight hand-built approximation so the whole app
+// stays a single offline file with no map-tile network calls.
+const DEG = Math.PI / 180;
+
+/* ---- High-detail interactive globe ----
+   Uses public GeoJSON country geometry when online, with a built-in fallback.
+   Drag direction is intentionally corrected to feel natural on touchscreens.
+*/
+const FALLBACK_LAND = [
+  [[-160,70],[-140,70],[-125,49],[-117,32],[-97,16],[-80,8],[-75,35],[-60,47],[-55,52],[-75,62],[-95,70],[-130,70]],
+  [[-80,8],[-70,-15],[-70,-35],[-71,-53],[-62,-45],[-48,-25],[-35,-8],[-50,5],[-70,12]],
+  [[-10,36],[-2,43],[10,44],[20,40],[27,35],[30,45],[25,50],[30,60],[35,66],[20,63],[10,58],[10,53],[0,51],[-9,43]],
+  [[-17,15],[-6,33],[10,37],[25,32],[35,30],[43,12],[51,12],[51,2],[40,-5],[40,-15],[33,-28],[20,-34],[12,-18],[9,-5],[-10,7]],
+  [[27,40],[35,30],[43,12],[57,25],[72,21],[77,8],[90,22],[104,10],[119,17],[122,31],[126,38],[131,44],[142,46],[140,35],[128,35],[120,33],[100,13],[80,8],[57,25],[35,37]],
+  [[113,-22],[115,-33],[126,-32],[140,-38],[153,-28],[150,-22],[142,-11],[132,-12],[122,-17]],
+  [[-52,70],[-40,75],[-25,72],[-20,70],[-22,66],[-35,63],[-45,60],[-52,63]],
+  [[-179,-64],[-90,-72],[0,-76],[90,-72],[179,-64],[179,-90],[-179,-90]]
+];
+
+const CITY_LABELS = [
+ ['New York',-74.0,40.7],['Los Angeles',-118.24,34.05],['Mexico City',-99.13,19.43],
+ ['Toronto',-79.38,43.65],['Vancouver',-123.12,49.28],['São Paulo',-46.63,-23.55],
+ ['Rio de Janeiro',-43.17,-22.91],['Buenos Aires',-58.38,-34.60],['Lima',-77.04,-12.05],
+ ['London',-0.13,51.51],['Paris',2.35,48.86],['Madrid',-3.70,40.42],['Rome',12.50,41.90],
+ ['Berlin',13.40,52.52],['Moscow',37.62,55.75],['Istanbul',28.98,41.01],['Cairo',31.24,30.04],
+ ['Nairobi',36.82,-1.29],['Johannesburg',28.05,-26.20],['Lagos',3.38,6.52],
+ ['Dubai',55.27,25.20],['Mumbai',72.88,19.08],['Delhi',77.21,28.61],['Kolkata',88.36,22.57],
+ ['Bengaluru',77.59,12.97],['Chennai',80.27,13.08],['Dhaka',90.41,23.81],
+ ['Karachi',67.01,24.86],['Tehran',51.39,35.69],['Beijing',116.41,39.90],
+ ['Shanghai',121.47,31.23],['Tokyo',139.69,35.68],['Seoul',126.98,37.57],
+ ['Bangkok',100.50,13.76],['Singapore',103.82,1.35],['Jakarta',106.85,-6.21],
+ ['Manila',120.98,14.60],['Sydney',151.21,-33.87],['Melbourne',144.96,-37.81],
+ ['Auckland',174.76,-36.85]
+];
+
+let globeFeatures = null;
+let globeLoading = false;
+const COUNTRY_INFO_J00={
+India:['India','South Asia','New Delhi','A country in South Asia with a highly diverse geography and culture.'],
+China:['China','East Asia','Beijing','A country in East Asia with a long history and one of the world’s largest populations.'],
+Japan:['Japan','East Asia','Tokyo','An island country in East Asia made up of four main islands and many smaller islands.'],
+USA:['United States','North America','Washington, D.C.','A federal country in North America made up of 50 states and a federal district.'],
+Canada:['Canada','North America','Ottawa','A country in northern North America extending from the Atlantic to the Pacific and Arctic.'],
+Brazil:['Brazil','South America','Brasília','The largest country in South America, including a large part of the Amazon Basin.'],
+Australia:['Australia','Oceania','Canberra','A country and continent between the Indian and Pacific oceans.'],
+Russia:['Russia','Europe / Asia','Moscow','The world’s largest country by land area, spanning eastern Europe and northern Asia.'],
+Germany:['Germany','Europe','Berlin','A federal country in central Europe.'],
+France:['France','Europe','Paris','A country in western Europe with overseas regions and territories.'],
+Italy:['Italy','Europe','Rome','A country in southern Europe extending into the Mediterranean Sea.'],
+Spain:['Spain','Europe','Madrid','A country occupying most of the Iberian Peninsula.'],
+Mexico:['Mexico','North America','Mexico City','A country in the southern part of North America.'],
+Egypt:['Egypt','Africa','Cairo','A country linking northeast Africa and southwest Asia through the Sinai Peninsula.'],
+Pakistan:['Pakistan','South Asia','Islamabad','A country in South Asia bordered by India, Afghanistan, Iran and China.'],
+Bangladesh:['Bangladesh','South Asia','Dhaka','A country in South Asia on the Bay of Bengal.'],
+Nepal:['Nepal','South Asia','Kathmandu','A landlocked Himalayan country between India and China.'],
+Indonesia:['Indonesia','Southeast Asia','Jakarta','A large archipelagic country in Southeast Asia and Oceania.']
+};
+
+let rotLon = -20 * Math.PI/180, rotLat = -15 * Math.PI/180;
+let mapScale = 1, baseR = 140, mapCanvas, mapCtx, mapDPR = 1;
+let mapOpen = false, mapDragging = false, mapLastX = 0, mapLastY = 0;
+let mapAutoRotate = true, mapAnimHandle = null, mapPinchDist = null;
+let mapPins = [];
+
+function loadPins(){
+  try { mapPins = JSON.parse(localStorage.getItem('jarvis-globe-pins') || '[]'); }
+  catch(e){ mapPins=[]; }
+}
+function savePins(){ try{ localStorage.setItem('jarvis-globe-pins',JSON.stringify(mapPins)); }catch(e){} }
+loadPins();
+
+function sizeMapCanvas(){
+  mapCanvas=$('mapCanvas'); mapCtx=mapCanvas.getContext('2d');
+  const vp=$('mapViewport'), w=vp.clientWidth, h=vp.clientHeight;
+  mapDPR=Math.min(window.devicePixelRatio||1,3);
+  mapCanvas.width=Math.round(w*mapDPR); mapCanvas.height=Math.round(h*mapDPR);
+  mapCanvas.style.width=w+'px'; mapCanvas.style.height=h+'px';
+  mapCtx.setTransform(mapDPR,0,0,mapDPR,0,0);
+  baseR=Math.min(w,h)*0.43;
+}
+
+function project(lon,lat,cx,cy,R){
+  const lam=lon*Math.PI/180-rotLon, phi=lat*Math.PI/180;
+  const cp=Math.cos(phi), sp=Math.sin(phi), cl=Math.cos(lam), sl=Math.sin(lam);
+  const c0=Math.cos(rotLat), s0=Math.sin(rotLat);
+  return {
+    x:cx+R*cp*sl,
+    y:cy-R*(c0*sp-s0*cp*cl),
+    z:s0*sp+c0*cp*cl
+  };
+}
+
+function drawRing(ring,cx,cy,R){
+  let sub=[];
+  const flush=()=>{
+    if(sub.length<2){sub=[];return;}
+    mapCtx.beginPath(); mapCtx.moveTo(sub[0].x,sub[0].y);
+    for(let i=1;i<sub.length;i++) mapCtx.lineTo(sub[i].x,sub[i].y);
+    mapCtx.closePath(); mapCtx.fill(); mapCtx.stroke(); sub=[];
+  };
+  for(const pt of ring){
+    const p=project(pt[0],pt[1],cx,cy,R);
+    if(p.z < -0.02){flush();} else sub.push(p);
+  }
+  flush();
+}
+
+function drawFeature(feature,cx,cy,R){
+  const g=feature.geometry;
+  if(!g) return;
+  const polys=g.type==='Polygon'?[g.coordinates]:g.coordinates;
+  for(const poly of polys) for(const ring of poly) drawRing(ring,cx,cy,R);
+}
+
+function drawGlobe(){
+  if(!mapCtx) return;
+  const vp=$('mapViewport'), w=vp.clientWidth, h=vp.clientHeight;
+  const cx=w/2, cy=h/2, R=baseR*mapScale;
+  mapCtx.clearRect(0,0,w,h);
+
+  // Google Maps-style vector presentation: clean map colors, sharp boundaries,
+  // grid/roads-like detail, and labels shown only when there is room.
+  mapCtx.fillStyle='#07131d'; mapCtx.fillRect(0,0,w,h);
+  const ocean=mapCtx.createRadialGradient(cx,cy,10,cx,cy,Math.max(w,h)*.72);
+  ocean.addColorStop(0,'#173f59'); ocean.addColorStop(.7,'#0b2940'); ocean.addColorStop(1,'#06121c');
+  mapCtx.fillStyle=ocean; mapCtx.fillRect(0,0,w,h);
+
+  // Graticule / map grid.
+  mapCtx.lineWidth=.55; mapCtx.strokeStyle='rgba(145,205,225,.12)';
+  for(let lon=-180;lon<=180;lon+=10){
+    mapCtx.beginPath();
+    for(let lat=-85;lat<=85;lat+=2){ const q=project(lon,lat,cx,cy,R); if(q.z<0) continue; if(lat===-85) mapCtx.moveTo(q.x,q.y); else mapCtx.lineTo(q.x,q.y); }
+    mapCtx.stroke();
+  }
+  for(let lat=-80;lat<=80;lat+=10){
+    mapCtx.beginPath();
+    for(let lon=-180;lon<=180;lon+=2){ const q=project(lon,lat,cx,cy,R); if(q.z<0) continue; if(lon===-180) mapCtx.moveTo(q.x,q.y); else mapCtx.lineTo(q.x,q.y); }
+    mapCtx.stroke();
+  }
+
+  // Land, using the downloaded GeoJSON geometry already used by the app.
+  mapCtx.fillStyle='#76a86b'; mapCtx.strokeStyle='#d2dfb7'; mapCtx.lineWidth=Math.max(.7,1/mapScale);
+  if(globeFeatures?.features) globeFeatures.features.forEach(f=>drawFeature(f,cx,cy,R));
+  else FALLBACK_LAND.forEach(r=>drawRing(r,cx,cy,R));
+
+  // Collision-aware labels: countries first, then cities only at useful zoom.
+  const boxes=[];
+  const overlaps=(b)=>boxes.some(q=>b.x<q.x+q.w && b.x+b.w>q.x && b.y<q.y+q.h && b.y+b.h>q.y);
+  function label(text,x,y,kind){
+    mapCtx.font=kind==='country'?'600 10px system-ui,sans-serif':'500 10px system-ui,sans-serif';
+    const tw=mapCtx.measureText(text).width, b={x:x+5,y:y-7,w:tw+10,h:15};
+    if(x<-40||x>w+40||y<-20||y>h+20||overlaps(b)) return false;
+    boxes.push(b);
+    mapCtx.fillStyle=kind==='country'?'rgba(255,255,255,.86)':'rgba(35,52,60,.92)';
+    mapCtx.fillRect(b.x,b.y,b.w,b.h);
+    mapCtx.fillStyle=kind==='country'?'#17311f':'#f4f8fa';
+    mapCtx.fillText(text,x+10,y);
+    return true;
+  }
+  if(globeFeatures?.features){
+    for(const f of globeFeatures.features){
+      const name=f.properties?.ADMIN||f.properties?.NAME||f.properties?.name||''; if(!name) continue;
+      const pts=[]; (function collect(g){if(!g)return;if(typeof g[0]==='number')pts.push(g);else g.forEach(collect)})(f.geometry?.coordinates);
+      if(!pts.length) continue;
+      let lon=0,lat=0; for(const q of pts){lon+=q[0];lat+=q[1]} lon/=pts.length;lat/=pts.length;
+      const q=project(lon,lat,cx,cy,R); if(q.z>.25) label(name,q.x,q.y,'country');
+    }
+  }
+  if(mapScale>=1.35){
+    for(const [name,lon,lat] of CITY_LABELS){
+      const q=project(lon,lat,cx,cy,R); if(q.z<.35) continue;
+      mapCtx.beginPath();mapCtx.arc(q.x,q.y,2.5,0,Math.PI*2);mapCtx.fillStyle='#e85d5d';mapCtx.fill();
+      label(name,q.x,q.y,'city');
+    }
+  }
+  for(const pin of mapPins){
+    const q=project(pin.lon,pin.lat,cx,cy,R); if(q.z<0) continue;
+    mapCtx.beginPath();mapCtx.arc(q.x,q.y,5,0,Math.PI*2);mapCtx.fillStyle=pin.kind==='device'?'#22c55e':'#ffb020';mapCtx.fill();
+    mapCtx.strokeStyle='#fff';mapCtx.lineWidth=1.5;mapCtx.stroke();
+    mapCtx.font='700 10px system-ui,sans-serif';mapCtx.fillStyle='#fff';mapCtx.fillText(pin.name||'PIN',q.x+8,q.y-8);
+  }
+
+  // Crisp map edge.
+  mapCtx.strokeStyle='rgba(130,220,240,.75)';mapCtx.lineWidth=1.2;
+  mapCtx.beginPath();mapCtx.arc(cx,cy,R,0,Math.PI*2);mapCtx.stroke();
+}
+
+async function loadGlobeData(){
+  if(globeLoading || globeFeatures) return;
+  globeLoading=true;
+  $('mapStatus').textContent='LOADING HIGH-DETAIL COUNTRY DATA…';
+  try{
+    const url='https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
+    const res=await fetch(url,{cache:'force-cache'});
+    if(!res.ok) throw new Error('GeoJSON '+res.status);
+    globeFeatures=await res.json();
+    $('mapStatus').textContent='GLOBAL DATA ONLINE · '+globeFeatures.features.length+' COUNTRIES';
+  }catch(e){
+    $('mapStatus').textContent='OFFLINE FALLBACK · CONNECT TO LOAD FULL DETAIL';
+  }finally{ globeLoading=false; drawGlobe(); }
+}
+
+function mapLoop(){
+  if(!mapOpen)return;
+  if(mapAutoRotate&&!mapDragging)rotLon+=0.0008;
+  drawGlobe();mapAnimHandle=requestAnimationFrame(mapLoop);
+}
+function resetMapView(){rotLon=-20*Math.PI/180;rotLat=-15*Math.PI/180;mapScale=1;mapAutoRotate=true;drawGlobe();}
+function openMap(){
+  $('mapOverlay').classList.add('open');mapOpen=true;sizeMapCanvas();loadPins();resetMapView();loadGlobeData();
+  if(mapAnimHandle)cancelAnimationFrame(mapAnimHandle);mapLoop();
+}
+function closeMap(){ $('mapOverlay').classList.remove('open');mapOpen=false;if(mapAnimHandle)cancelAnimationFrame(mapAnimHandle);mapAnimHandle=null; }
+function zoomMap(f){mapScale=Math.min(6,Math.max(1,mapScale*f));drawGlobe();}
+
+function canvasLatLon(clientX,clientY){
+  const r=mapCanvas.getBoundingClientRect(), x=(clientX-r.left)/mapScale, y=(clientY-r.top)/mapScale;
+  const w=mapCanvas.clientWidth/mapScale,h=mapCanvas.clientHeight/mapScale;
+  const R=baseR,cx=w/2,cy=h/2,dx=x-cx,dy=cy-y,d=Math.hypot(dx,dy);
+  if(d>R)return null;
+  const zz=Math.sqrt(Math.max(0,R*R-d*d))/R;
+  const X=dx/R,Y=dy/R,Z=zz;
+  const c0=Math.cos(rotLat),s0=Math.sin(rotLat);
+  const y1=Y*c0+Z*s0, z1=-Y*s0+Z*c0;
+  const lam=Math.atan2(X,z1)+rotLon;
+  const lat=Math.asin(Math.max(-1,Math.min(1,y1)));
+  return {lon:((lam*180/Math.PI+540)%360)-180,lat:lat*180/Math.PI};
+}
+
+// Natural touch drag: moving finger right rotates globe left; moving finger down rotates globe down.
+$('mapViewport').addEventListener('pointerdown',e=>{
+  mapDragging=true;mapAutoRotate=false;mapLastX=e.clientX;mapLastY=e.clientY;
+  $('mapCanvas').classList.add('dragging');try{$('mapViewport').setPointerCapture(e.pointerId)}catch(_){}
+});
+$('mapViewport').addEventListener('pointermove',e=>{
+  if(!mapDragging)return;
+  const dx=e.clientX-mapLastX,dy=e.clientY-mapLastY;mapLastX=e.clientX;mapLastY=e.clientY;
+  rotLon-=dx*.006;
+  rotLat+=dy*.006;
+  rotLat=Math.max(-1.45,Math.min(1.45,rotLat));drawGlobe();
+});
+['pointerup','pointercancel'].forEach(ev=>$('mapViewport').addEventListener(ev,e=>{
+  if(mapDragging){
+    const moved=Math.hypot(e.clientX-mapLastX,e.clientY-mapLastY);
+    mapDragging=false;$('mapCanvas').classList.remove('dragging');
+  }
+}));
+
+// Long press pins the exact globe location. A geolocation attempt can name it later.
+let pressTimer=null,pressStart=null;
+$('mapViewport').addEventListener('pointerdown',e=>{
+  pressStart={x:e.clientX,y:e.clientY};clearTimeout(pressTimer);
+  pressTimer=setTimeout(()=>{
+    if(!mapDragging&&pressStart){
+      const ll=canvasLatLon(pressStart.x,pressStart.y);
+      if(ll){
+        mapPins.push({lon:ll.lon,lat:ll.lat,name:'Pinned '+ll.lat.toFixed(2)+'°, '+ll.lon.toFixed(2)+'°'});
+        savePins();drawGlobe();
+        $('mapStatus').textContent='PINNED · '+ll.lat.toFixed(2)+'°, '+ll.lon.toFixed(2)+'°';
+      }
+    }
+  },650);
+});
+['pointerup','pointercancel','pointermove'].forEach(ev=>$('mapViewport').addEventListener(ev,e=>{
+  if(ev==='pointermove'&&pressStart&&Math.hypot(e.clientX-pressStart.x,e.clientY-pressStart.y)>12)clearTimeout(pressTimer);
+  if(ev!=='pointermove')clearTimeout(pressTimer);
+}));
+
+$('mapViewport').addEventListener('wheel',e=>{e.preventDefault();zoomMap(e.deltaY<0?1.12:1/1.12)},{passive:false});
+$('mapZoomIn').addEventListener('click',()=>zoomMap(1.3));
+$('mapZoomOut').addEventListener('click',()=>zoomMap(1/1.3));
+$('mapZoomReset').addEventListener('click',resetMapView);
+$('mapCloseBtn').addEventListener('click',closeMap);
+$('orbCanvas').addEventListener('click',openMap);
+$('mapViewport').addEventListener('touchmove',e=>{
+  if(e.touches.length===2){
+    e.preventDefault();
+    const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;
+    const d=Math.hypot(dx,dy);if(mapPinchDist)zoomMap(d/mapPinchDist);mapPinchDist=d;
+  }
+},{passive:false});
+$('mapViewport').addEventListener('touchend',e=>{if(e.touches.length<2)mapPinchDist=null});
+window.addEventListener('resize',()=>{if(mapOpen){sizeMapCanvas();drawGlobe()}});
+
+// Show user's own device location on the globe when the browser permits it.
+async function showMyLocation(){
+  if(!navigator.geolocation){$('mapStatus').textContent='LOCATION API NOT AVAILABLE';return;}
+  $('mapStatus').textContent='REQUESTING DEVICE LOCATION…';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude,lon=pos.coords.longitude;
+    mapPins=mapPins.filter(p=>p.kind!=='device');
+    mapPins.push({lon,lat,name:'MY LOCATION',kind:'device'});
+    savePins();drawGlobe();
+    $('mapStatus').textContent='MY LOCATION · '+lat.toFixed(3)+'°, '+lon.toFixed(3)+'°';
+  },err=>{
+    $('mapStatus').textContent='LOCATION PERMISSION DENIED / UNAVAILABLE';
+  },{enableHighAccuracy:true,timeout:10000,maximumAge:300000});
+}
+
+// Long-press the status area is not required; a double tap on the globe requests location.
+$('mapViewport').addEventListener('dblclick',showMyLocation);
+
+function showCountryInfoJ00(name){
+const p=document.getElementById('countryInfo'),t=document.getElementById('countryInfoTitle'),b=document.getElementById('countryInfoBody');
+if(!p)return;
+const d=Object.values(COUNTRY_INFO_J00).find(x=>x[0].toLowerCase()===String(name).toLowerCase());
+t.textContent=d?d[0]:name;
+b.textContent=d?('Region: '+d[1]+'\nCapital: '+d[2]+'\n\n'+d[3]):'Information for this country is not available yet.';
+p.classList.add('show');
+}
+function countryAtPointJ00(x,y){
+if(typeof cityData==='undefined')return null;
+const r=mapCanvas.getBoundingClientRect(),px=x-r.left,py=y-r.top,w=mapCanvas.clientWidth,h=mapCanvas.clientHeight,cx=w/2,cy=h/2,R=baseR*mapScale;
+let best=null,bd=Infinity;
+for(const q of cityData){const qx=cx+(q[1]-rotLon*180/Math.PI)*R/180,qy=cy-(q[2]-rotLat*180/Math.PI)*R/180,d=Math.hypot(px-qx,py-qy);if(d<bd&&d<Math.max(28,R*.10)){best=q;bd=d;}}
+return best?best[0]:null;
+}
+$('mapViewport').addEventListener('click',e=>{if(mapDragging)return;const n=countryAtPointJ00(e.clientX,e.clientY);if(n)showCountryInfoJ00(n);});
+
+// JARVIS wake word: say "Jarvis" while the page is open.
+// Browsers may stop background microphone access; this is intentionally
+// foreground-friendly and restarts after each recognition session.
+let wakeRecognition = null;
+let wakeEnabled = true;
+function startJarvisWakeWord(){
+  const SR2 = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!wakeEnabled || !SR2 || !isSecure) return;
+  try{
+    wakeRecognition = new SR2();
+    wakeRecognition.continuous = true;
+    wakeRecognition.interimResults = true;
+    wakeRecognition.lang = 'en-US';
+    wakeRecognition.onresult = e=>{
+      let heard = '';
+      for(let i=e.resultIndex;i<e.results.length;i++) heard += ' ' + e.results[i][0].transcript;
+      heard = heard.toLowerCase().trim();
+      if(/\bjarvis\b/.test(heard)){
+        window.orbState='listening';
+        speak('Yes, sir?');
+        setTimeout(()=>{
+          try { recognition && recognition.start(); } catch(err) {}
+        }, 350);
+      }
+    };
+    wakeRecognition.onend = ()=>{
+      if(wakeEnabled) setTimeout(startJarvisWakeWord, 500);
+    };
+    wakeRecognition.onerror = ()=>{
+      if(wakeEnabled) setTimeout(startJarvisWakeWord, 1200);
+    };
+    wakeRecognition.start();
+  }catch(e){}
+}
+window.addEventListener('load', ()=>{
+  loadUnifiedApiKey();
+  setTimeout(startJarvisWakeWord, 1000);
+});
+
+</script>
+</body>
+</html>
